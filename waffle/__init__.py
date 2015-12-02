@@ -117,6 +117,13 @@ def switch_is_active(request, switch_name):
     switch = cache.get(keyfmt(get_setting('SWITCH_CACHE_KEY'),
                               switch_name, current_site))
     if switch is None:
+
+
+        if switch.all_sites_override:
+            switch = Switch.objects.get(name=switch_name)
+        else:
+
+
         try:
             switch = Switch.objects.get(name=switch_name,
                                         site__in=[current_site])
