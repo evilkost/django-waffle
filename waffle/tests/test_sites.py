@@ -26,9 +26,14 @@ class SiteTests(TestCase):
     def test_switch_by_site(self):
         """ test that we can get different switch values by site """
         name = 'myswitch'
-        switch1 = Switch.objects.create(name=name, active=True, site=self.site1)
-        switch2 = Switch.objects.create(name=name, active=False, site=self.site2)
+        switch1 = Switch.objects.create(name=name, active=True, site=self.site1,
+                                        all_sites_override=False)
+        switch2 = Switch.objects.create(name=name, active=False, site=self.site2,
+                                        all_sites_override=False)
 
+
+        self.assertEqual(switch1.pk, switch2.pk)
+        import ipdb; ipdb.set_trace()
         self.assertTrue(waffle.switch_is_active(get(), name))
 
         with self.settings(SITE_ID=2):
@@ -49,9 +54,15 @@ class SiteTests(TestCase):
         with self.settings(SITE_ID=4):
             self.assertFalse(waffle.switch_is_active(get(), name))
 
+    def test_switch_inactive_no_bound_sites(self):
+        switch = Switch.objects.create(name='myswitch', active=True,
+                                       all_sites_override=False)
+        assert not waffle.switch_is_active(get(), switch.name)
+
+
     def test_switch_site_default(self):
         name = 'myswitch'
-        switch = Switch.objects.create(name=name, active=True) # no site given
+        switch = Switch.objects.create(name=name, active=True)  # no site given
 
         self.assertTrue(waffle.switch_is_active(get(), name))
 

@@ -117,25 +117,14 @@ def switch_is_active(request, switch_name):
     switch = cache.get(keyfmt(get_setting('SWITCH_CACHE_KEY'),
                               switch_name, current_site))
     if switch is None:
-
-
-        if switch.all_sites_override:
-            switch = Switch.objects.get(name=switch_name)
-        else:
-
-
         try:
-            switch = Switch.objects.get(name=switch_name,
-                                        site__in=[current_site])
-            cache_switch(instance=switch)
+            switch = Switch.objects.get(name=switch_name)
         except Switch.DoesNotExist:
-            try:
-                switch = Switch.objects.get(name=switch_name,
-                                            site__isnull=True)
-                cache_switch(instance=switch)
-            except Switch.DoesNotExist:
-                return get_setting('SWITCH_DEFAULT')
-    return switch.active
+            return get_setting('SWITCH_DEFAULT')
+
+        cache_switch(instance=switch)
+
+    return switch.active and current_site in switch.get_sites()
 
 
 def sample_is_active(request, sample_name):

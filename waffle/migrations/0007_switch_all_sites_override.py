@@ -14,6 +14,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='switch',
             name='all_sites_override',
-            field=models.BooleanField(default=False, help_text=b'When True this switch is used for all sites'),
+            field=models.BooleanField(default=True, help_text=b'When True this switch is used for all sites'),
         ),
     ]

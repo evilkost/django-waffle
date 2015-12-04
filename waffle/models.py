@@ -113,11 +113,12 @@ class Switch(models.Model):
     modified = models.DateTimeField(default=datetime.now, help_text=(
         'Date when this Switch was last modified.'))
 
-    all_sites_override = models.BooleanField(default=False, help_text=(
+    all_sites_override = models.BooleanField(default=True, help_text=(
         'When True this switch is used for all sites'))
 
     site = models.ManyToManyField(Site, blank=True,
-                                  related_name="waffle_switches_m2m")
+                                  related_name="waffle_switches_m2m",
+                                  help_text="utilized only if `all_sites_override` is set to False")
 
     objects = SwitchQuerySet.as_manager()
 
