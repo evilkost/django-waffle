@@ -133,19 +133,19 @@ class SiteTests(TestCase):
         name1 = "foo"
         Sample.objects.create(name=name1, percent='100.0', site=self.site1)
 
-        self.assertEqual([name1], [sw.name for sw in Sample.get_samples_for_site(self.site1)])
+        self.assertEqual([name1], [s.name for s in Sample.get_samples_for_site(self.site1)])
         # by default sample is sites-global
-        self.assertEqual([name1], [sw.name for sw in Sample.get_samples_for_site(self.site2)])
+        self.assertEqual([name1], [s.name for s in Sample.get_samples_for_site(self.site2)])
 
         name2 = "bar"
         Sample.objects.create(name=name2, percent='0.0', site=self.site2, all_sites_override=False)
-        self.assertEqual({name1, name2}, set([sw.name for sw in Sample.get_samples_for_site(self.site2)]))
-        self.assertEqual([name1], [sw.name for sw in Sample.get_samples_for_site(self.site1)])
+        self.assertEqual({name1, name2}, set([s.name for s in Sample.get_samples_for_site(self.site2)]))
+        self.assertEqual([name1], [s.name for s in Sample.get_samples_for_site(self.site1)])
 
     def test_flag_by_site(self):
         name = 'myflag'
-        flag1 = Flag.objects.create(name=name, everyone=True, site=self.site1)
-        flag2 = Flag.objects.create(name=name, everyone=False, site=self.site2)
+        flag1 = Flag.objects.create(name=name, everyone=True, site=self.site1,
+                                    all_sites_override=False)
         request = get()
 
         response = process_request(request, views.flag_in_view)
@@ -154,3 +154,26 @@ class SiteTests(TestCase):
         with self.settings(SITE_ID=2):
             response = process_request(request, views.flag_in_view)
             self.assertContains(response, b'off')
+
+    def test_flag_all_sites_override(self):
+        name = 'sample'
+        Flag.objects.create(name=name, everyone=True, site=self.site1)
+
+        self.assertTrue(waffle.flag_is_active(get(), name))
+
+        with self.settings(SITE_ID=2):
+            self.assertTrue(waffle.flag_is_active(get(), name))
+
+    def test_get_flags_for_site(self):
+        self.assertTrue(len(Flag.get_flags_for_site(self.site1)) == 0)
+        name1 = "foo"
+        Flag.objects.create(name=name1, everyone=True, site=self.site1)
+
+        self.assertEqual([name1], [f.name for f in Flag.get_flags_for_site(self.site1)])
+        # by default sample is sites-global
+        self.assertEqual([name1], [f.name for f in Flag.get_flags_for_site(self.site2)])
+
+        name2 = "bar"
+        Flag.objects.create(name=name2,  everyone=True, site=self.site2, all_sites_override=False)
+        self.assertEqual({name1, name2}, set([f.name for f in Flag.get_flags_for_site(self.site2)]))
+        self.assertEqual([name1], [f.name for f in Flag.get_flags_for_site(self.site1)])

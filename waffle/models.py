@@ -66,13 +66,25 @@ class Flag(models.Model):
     modified = models.DateTimeField(default=datetime.now, help_text=(
         'Date when this Flag was last modified.'))
 
+    all_sites_override = models.BooleanField(default=True, help_text=(
+        'When True this flag is used for all sites'
+        'IMPORTANT: don\'t allow to create two flags with the same name'))
+
     site = models.ManyToManyField(Site, blank=True,
-                                  related_name="waffle_flags_m2m")
+                                  related_name="waffle_flags_m2m",
+                                  help_text="utilized only if `all_sites_override` is set to False")
 
     objects = FlagQuerySet.as_manager()
 
+    @staticmethod
+    def get_flags_for_site(site):
+        return Flag.objects.filter(Q(site=site) | Q(all_sites_override=True))
+
     def get_sites(self):
-        return self.site.all()
+        if not self.all_sites_override:
+            return self.site.all()
+        else:
+            return Site.objects.all()
 
     def get_sites_json(self):
         return serializers.serialize("json", self.get_sites())
@@ -179,7 +191,8 @@ class Sample(models.Model):
         'Date when this Sample was last modified.'))
 
     site = models.ManyToManyField(Site, blank=True,
-                                  related_name="waffle_samples_m2m")
+                                  related_name="waffle_samples_m2m",
+                                  help_text="utilized only if `all_sites_override` is set to False")
 
     all_sites_override = models.BooleanField(default=True, help_text=(
         'When True this sample is used for all sites'

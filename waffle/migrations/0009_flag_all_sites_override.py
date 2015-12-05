@@ -7,16 +7,16 @@ from django.db import models, migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('waffle', '0006_auto_20150923_1331'),
+        ('waffle', '0008_sample_all_sites_override'),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='switch',
+            model_name='flag',
             name='all_sites_override',
             field=models.BooleanField(
                 default=True,
-                help_text=b"When True this switch is used for all sites"
-                          b" IMPORTANT: don't allow to create two switches with the same name"),
-        ),
+                help_text=b"When True this flag is used for all sites"
+                          b" IMPORTANT: don't allow to create two flags with the same name"),
+        )
     ]

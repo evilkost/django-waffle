@@ -23,16 +23,15 @@ def flag_is_active(request, flag_name):
     current_site = Site.objects.get_current(request)
     flag = cache.get(keyfmt(get_setting('FLAG_CACHE_KEY'),
                             flag_name, current_site))
+
     if flag is None:
-        try:
-            flag = Flag.objects.get(name=flag_name, site__in=[current_site])
-            cache_flag(instance=flag)
-        except Flag.DoesNotExist:
-            try:
-                flag = Flag.objects.get(name=flag_name, site__isnull=True)
-                cache_flag(instance=flag)
-            except Flag.DoesNotExist:
-                return get_setting('FLAG_DEFAULT')
+        flag = Flag.objects.filter(name=flag_name).first()
+        if flag is None:
+            return get_setting("FLAG_DEFAULT")
+        cache_flag(instance=flag)
+
+    if current_site not in flag.get_sites():
+        return False
 
     if get_setting('OVERRIDE'):
         if flag_name in request.GET:
