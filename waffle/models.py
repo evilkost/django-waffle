@@ -181,10 +181,21 @@ class Sample(models.Model):
     site = models.ManyToManyField(Site, blank=True,
                                   related_name="waffle_samples_m2m")
 
+    all_sites_override = models.BooleanField(default=True, help_text=(
+        'When True this sample is used for all sites'
+        'IMPORTANT: don\'t allow to create two samples with the same name'))
+
     objects = SampleQuerySet.as_manager()
 
+    @staticmethod
+    def get_samples_for_site(site):
+        return Sample.objects.filter(Q(site=site) | Q(all_sites_override=True))
+
     def get_sites(self):
-        return self.site.all()
+        if not self.all_sites_override:
+            return self.site.all()
+        else:
+            return Site.objects.all()
 
     def get_sites_json(self):
         return serializers.serialize("json", self.get_sites())

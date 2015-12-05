@@ -24,6 +24,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='switch',
             name='site',
-            field=models.ManyToManyField(related_name='waffle_switches_m2m', to='sites.Site', blank=True),
+            field=models.ManyToManyField(related_name='waffle_switches_m2m', to='sites.Site', blank=True,
+                                         help_text=b'utilized only if `all_sites_override` is set to False'),
         ),
     ]

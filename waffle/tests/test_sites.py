@@ -94,10 +94,27 @@ class SiteTests(TestCase):
 
     def test_sample_by_site(self):
         name = 'sample'
-        sample1 = Sample.objects.create(name=name, percent='100.0', site=self.site1)
-        sample2 = Sample.objects.create(name=name, percent='0.0', site=self.site2)
+        Sample.objects.create(name=name, percent='100.0', site=self.site1,
+                              all_sites_override=False)
 
         self.assertTrue(waffle.sample_is_active(get(), name))
+
+        with self.settings(SITE_ID=2):
+            self.assertFalse(waffle.sample_is_active(get(), name))
+
+    def test_sample_all_sites_override(self):
+        name = 'sample'
+        Sample.objects.create(name=name, percent='100.0', site=self.site1)
+
+        self.assertTrue(waffle.sample_is_active(get(), name))
+
+        with self.settings(SITE_ID=2):
+            self.assertTrue(waffle.sample_is_active(get(), name))
+
+    def test_sample_inactive_all_sites_override(self):
+        name = 'mysample'
+        Sample.objects.create(name=name, percent='0.0', site=self.site1)
+        self.assertFalse(waffle.sample_is_active(get(), name))
 
         with self.settings(SITE_ID=2):
             self.assertFalse(waffle.sample_is_active(get(), name))
@@ -110,6 +127,20 @@ class SiteTests(TestCase):
 
         with self.settings(SITE_ID=2):
             self.assertTrue(waffle.sample_is_active(get(), name))
+    
+    def test_get_samples_for_site(self):
+        self.assertTrue(len(Sample.get_samples_for_site(self.site1)) == 0)
+        name1 = "foo"
+        Sample.objects.create(name=name1, percent='100.0', site=self.site1)
+
+        self.assertEqual([name1], [sw.name for sw in Sample.get_samples_for_site(self.site1)])
+        # by default sample is sites-global
+        self.assertEqual([name1], [sw.name for sw in Sample.get_samples_for_site(self.site2)])
+
+        name2 = "bar"
+        Sample.objects.create(name=name2, percent='0.0', site=self.site2, all_sites_override=False)
+        self.assertEqual({name1, name2}, set([sw.name for sw in Sample.get_samples_for_site(self.site2)]))
+        self.assertEqual([name1], [sw.name for sw in Sample.get_samples_for_site(self.site1)])
 
     def test_flag_by_site(self):
         name = 'myflag'

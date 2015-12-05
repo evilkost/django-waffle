@@ -126,6 +126,10 @@ def switch_is_active(request, switch_name):
     return switch.active and current_site in switch.get_sites()
 
 
+def probe_a_sample(sample):
+    return Decimal(str(random.uniform(0, 100))) <= sample.percent
+
+
 def sample_is_active(request, sample_name):
     from .models import cache_sample, Sample
     from .compat import cache
@@ -134,15 +138,10 @@ def sample_is_active(request, sample_name):
     sample = cache.get(keyfmt(get_setting('SAMPLE_CACHE_KEY'),
                               sample_name, current_site))
     if sample is None:
-        try:
-            sample = Sample.objects.get(name=sample_name,
-                                        site__in=[current_site])
-            cache_sample(instance=sample)
-        except Sample.DoesNotExist:
-            try:
-                sample = Sample.objects.get(name=sample_name, site__isnull=True)
-                cache_sample(instance=sample)
-            except Sample.DoesNotExist:
-                return get_setting('SAMPLE_DEFAULT')
+        sample = Sample.objects.filter(name=sample_name).first()
+        if sample is None:
+            return get_setting('SAMPLE_DEFAULT')
 
-    return Decimal(str(random.uniform(0, 100))) <= sample.percent
+        cache_sample(instance=sample)
+
+    return probe_a_sample(sample) and current_site in sample.get_sites()
