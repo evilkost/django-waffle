@@ -1,3 +1,5 @@
+from django.db.models import Q
+
 try:
     from django.utils import timezone as datetime
 except ImportError:
@@ -114,13 +116,18 @@ class Switch(models.Model):
         'Date when this Switch was last modified.'))
 
     all_sites_override = models.BooleanField(default=True, help_text=(
-        'When True this switch is used for all sites'))
+        'When True this switch is used for all sites'
+        'IMPORTANT: don\'t allow to create two switches with the same name'))
 
     site = models.ManyToManyField(Site, blank=True,
                                   related_name="waffle_switches_m2m",
                                   help_text="utilized only if `all_sites_override` is set to False")
 
     objects = SwitchQuerySet.as_manager()
+
+    @staticmethod
+    def get_switches_for_site(site):
+        return Switch.objects.filter(Q(site=site) | Q(all_sites_override=True))
 
     def get_sites(self):
         if not self.all_sites_override:
@@ -265,16 +272,16 @@ post_delete.connect(uncache_sample, sender=Sample,
 
 def cache_switch(**kwargs):
     switch = kwargs.get('instance')
-    for x in switch.get_sites():
+    for site in switch.get_sites():
         cache.add(keyfmt(get_setting('SWITCH_CACHE_KEY'),
-                         switch.name, x), switch)
+                         switch.name, site), switch)
 
 
 def uncache_switch(**kwargs):
     switch = kwargs.get('instance')
-    for x in switch.get_sites():
+    for site in Site.objects.all():
         cache.delete(keyfmt(get_setting('SWITCH_CACHE_KEY'),
-                            switch.name, x))
+                            switch.name, site))
     cache.delete(keyfmt(get_setting('ALL_SWITCHES_CACHE_KEY')))
 
 post_delete.connect(uncache_switch, sender=Switch,

@@ -117,9 +117,8 @@ def switch_is_active(request, switch_name):
     switch = cache.get(keyfmt(get_setting('SWITCH_CACHE_KEY'),
                               switch_name, current_site))
     if switch is None:
-        try:
-            switch = Switch.objects.get(name=switch_name)
-        except Switch.DoesNotExist:
+        switch = Switch.objects.filter(name=switch_name).first()
+        if switch is None:
             return get_setting('SWITCH_DEFAULT')
 
         cache_switch(instance=switch)

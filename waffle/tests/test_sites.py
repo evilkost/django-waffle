@@ -26,25 +26,35 @@ class SiteTests(TestCase):
     def test_switch_by_site(self):
         """ test that we can get different switch values by site """
         name = 'myswitch'
-        switch1 = Switch.objects.create(name=name, active=True, site=self.site1,
-                                        all_sites_override=False)
-        switch2 = Switch.objects.create(name=name, active=False, site=self.site2,
-                                        all_sites_override=False)
-
-
-        self.assertEqual(switch1.pk, switch2.pk)
-        import ipdb; ipdb.set_trace()
+        Switch.objects.create(name=name, active=True, site=self.site1,
+                              all_sites_override=False)
         self.assertTrue(waffle.switch_is_active(get(), name))
+
+        with self.settings(SITE_ID=2):
+            self.assertFalse(waffle.switch_is_active(get(), name))
+
+    def test_switch_all_sites_override(self):
+        name = 'myswitch'
+        Switch.objects.create(name=name, active=True, site=self.site1)
+        self.assertTrue(waffle.switch_is_active(get(), name))
+
+        with self.settings(SITE_ID=2):
+            self.assertTrue(waffle.switch_is_active(get(), name))
+
+    def test_switch_inactive_all_sites_override(self):
+        name = 'myswitch'
+        Switch.objects.create(name=name, active=False, site=self.site1)
+        self.assertFalse(waffle.switch_is_active(get(), name))
 
         with self.settings(SITE_ID=2):
             self.assertFalse(waffle.switch_is_active(get(), name))
 
     def test_switch_by_multisite(self):
         name = "myswitch"
-        switch1 = Switch.objects.create(name=name, active=True, site=self.site1)
+        switch1 = Switch.objects.create(name=name, active=True, site=self.site1,
+                                        all_sites_override=False)
         switch1.site.add(self.site2)
         switch1.site.add(self.site3)
-        switch2 = Switch.objects.create(name=name, active=False, site=self.site4)
 
         self.assertTrue(waffle.switch_is_active(get(), name))
         with self.settings(SITE_ID=2):
@@ -57,8 +67,7 @@ class SiteTests(TestCase):
     def test_switch_inactive_no_bound_sites(self):
         switch = Switch.objects.create(name='myswitch', active=True,
                                        all_sites_override=False)
-        assert not waffle.switch_is_active(get(), switch.name)
-
+        self.assertFalse(waffle.switch_is_active(get(), switch.name))
 
     def test_switch_site_default(self):
         name = 'myswitch'
@@ -68,6 +77,20 @@ class SiteTests(TestCase):
 
         with self.settings(SITE_ID=2):
             self.assertTrue(waffle.switch_is_active(get(), name))
+
+    def test_get_switches_for_site(self):
+        self.assertTrue(len(Switch.get_switches_for_site(self.site1)) == 0)
+        name1 = "foo"
+        Switch.objects.create(name=name1, active=True, site=self.site1)
+
+        self.assertEqual([name1], [sw.name for sw in Switch.get_switches_for_site(self.site1)])
+        # by default switch is sites-global
+        self.assertEqual([name1], [sw.name for sw in Switch.get_switches_for_site(self.site2)])
+
+        name2 = "bar"
+        Switch.objects.create(name=name2, active=True, site=self.site2, all_sites_override=False)
+        self.assertEqual({name1, name2}, set([sw.name for sw in Switch.get_switches_for_site(self.site2)]))
+        self.assertEqual([name1], [sw.name for sw in Switch.get_switches_for_site(self.site1)])
 
     def test_sample_by_site(self):
         name = 'sample'
